@@ -65,6 +65,14 @@ class ReceiptParsingTests(SimpleTestCase):
             categorize_expense("Apollo Pharmacy retail bill", "Apollo Pharmacy", "320.00"),
             "Medical",
         )
+        self.assertEqual(
+            categorize_expense(
+                "Apollo Health & Lifestyle Ltd. pharmacy bill",
+                "APOLLO PHARMACY",
+                "255.00",
+            ),
+            "Medical",
+        )
 
     def test_known_indian_merchant_mappings(self):
         examples = [
