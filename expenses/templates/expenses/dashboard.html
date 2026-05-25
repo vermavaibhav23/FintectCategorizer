@@ -1,0 +1,188 @@
+{% extends "expenses/base.html" %}
+
+{% block title %}Dashboard | SpendLens{% endblock %}
+
+{% block content %}
+<section class="dashboard-hero mb-4">
+  <div>
+    <p class="eyebrow mb-2">Intelligent expense categorizer</p>
+    <h1 class="h2 mb-2">Receipt OCR, category rules, and spend insights in one Django app.</h1>
+    <p class="text-secondary mb-0">Upload receipts, review extracted fields, and track where the money is going.</p>
+  </div>
+  <a class="btn btn-primary btn-lg" href="{% url 'upload_receipt' %}">Upload receipt</a>
+</section>
+
+<section class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="metric-card">
+      <span>Total spend</span>
+      <strong>₹{{ total_spend|floatformat:2 }}</strong>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="metric-card">
+      <span>Receipts processed</span>
+      <strong>{{ receipt_count }}</strong>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="metric-card">
+      <span>Top category</span>
+      <strong>{% if biggest_category %}{{ biggest_category.category }}{% else %}None{% endif %}</strong>
+    </div>
+  </div>
+</section>
+
+<section class="row g-4 align-items-stretch mb-4">
+  <div class="col-lg-7">
+    <div class="panel h-100">
+      <div class="panel-heading">
+        <div>
+          <h2 class="h5 mb-1">Category distribution</h2>
+          <p class="text-secondary mb-0">Interactive pie chart powered by Chart.js.</p>
+        </div>
+      </div>
+      {% if chart_values != "[]" %}
+        <div class="chart-wrap">
+          <canvas id="categoryPie"></canvas>
+        </div>
+      {% else %}
+        <div class="empty-state">Upload your first receipt to generate charts.</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="panel h-100">
+      <div class="panel-heading">
+        <div>
+          <h2 class="h5 mb-1">Insights</h2>
+          <p class="text-secondary mb-0">Fast talking points for your demo.</p>
+        </div>
+      </div>
+      <div class="insight-list">
+        <div class="insight">
+          <span>Biggest spend category</span>
+          <strong>
+            {% if biggest_category %}
+              {{ biggest_category.category }}: ₹{{ biggest_category.total|floatformat:2 }}
+            {% else %}
+              Waiting for data
+            {% endif %}
+          </strong>
+        </div>
+        <div class="insight">
+          <span>Latest receipt</span>
+          <strong>
+            {% if latest_expense %}
+              {{ latest_expense.merchant|default:"Unknown merchant" }}
+            {% else %}
+              None yet
+            {% endif %}
+          </strong>
+        </div>
+      </div>
+      <hr>
+      <h3 class="h6 mb-3">Category totals</h3>
+      {% for item in category_totals %}
+        <div class="category-row">
+          <span>{{ item.category }}</span>
+          <strong>₹{{ item.total|floatformat:2 }}</strong>
+        </div>
+      {% empty %}
+        <p class="text-secondary mb-0">No category totals yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-heading flex-wrap gap-3">
+    <div>
+      <h2 class="h5 mb-1">Processed receipts</h2>
+      <p class="text-secondary mb-0">Filter by category and manually correct OCR results.</p>
+    </div>
+    <form class="d-flex gap-2" method="get">
+      <select class="form-select" name="category" aria-label="Filter by category">
+        <option value="">All categories</option>
+        {% for value, label in category_choices %}
+          <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-outline-primary" type="submit">Filter</button>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Merchant</th>
+          <th>Date</th>
+          <th>Category</th>
+          <th class="text-end">Amount</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for expense in expenses %}
+          <tr>
+            <td>
+              <strong>{{ expense.merchant|default:"Unknown merchant" }}</strong>
+              <div class="small text-secondary">{{ expense.confidence_note }}</div>
+            </td>
+            <td>{{ expense.transaction_date|default:"-" }}</td>
+            <td><span class="badge rounded-pill text-bg-light">{{ expense.category }}</span></td>
+            <td class="text-end">₹{{ expense.amount|floatformat:2 }}</td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'edit_expense' expense.id %}">Review</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">No receipts yet. Upload a receipt to start categorizing.</div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const labels = {{ chart_labels|safe }};
+  const values = {{ chart_values|safe }};
+  const colors = {{ chart_colors|safe }};
+  const pie = document.getElementById("categoryPie");
+
+  if (pie && values.length) {
+    new Chart(pie, {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: colors,
+          borderWidth: 3,
+          borderColor: "#ffffff",
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: {
+            callbacks: {
+              label: (context) => `${context.label}: ₹${context.parsed.toFixed(2)}`
+            }
+          }
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}

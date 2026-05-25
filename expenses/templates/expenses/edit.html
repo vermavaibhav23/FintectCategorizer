@@ -1,0 +1,46 @@
+{% extends "expenses/base.html" %}
+
+{% block title %}Review Expense | SpendLens{% endblock %}
+
+{% block content %}
+<section class="narrow-page">
+  <div class="mb-4">
+    <p class="eyebrow mb-2">{% if is_fresh %}OCR result{% else %}Expense review{% endif %}</p>
+    <h1 class="h2 mb-2">Review extracted details</h1>
+    <p class="text-secondary mb-0">Correct anything OCR missed. Manual changes can improve the final category.</p>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <div class="panel">
+        <h2 class="h5 mb-3">Receipt image</h2>
+        <img class="receipt-preview" src="{{ expense.receipt_image.url }}" alt="Uploaded receipt">
+        {% if expense.confidence_note %}
+          <p class="small text-secondary mt-3 mb-0">{{ expense.confidence_note }}</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-lg-7">
+      <form id="expenseEditForm" class="panel" method="post">
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for error in field.errors %}
+              <div class="text-danger small mt-1">{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+        <div class="d-flex flex-wrap gap-2 justify-content-between">
+          <button class="btn btn-primary px-4" type="submit">Save and view dashboard</button>
+        </div>
+      </form>
+      <form class="mt-3" method="post" action="{% url 'delete_expense' expense.id %}">
+        {% csrf_token %}
+        <button class="btn btn-outline-danger" type="submit">Delete expense</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}
