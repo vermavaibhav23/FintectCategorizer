@@ -13,14 +13,14 @@ class ReceiptUploadForm(forms.ModelForm):
             }
         ),
         label="Fallback OCR text",
-        help_text="Useful when Tesseract is not installed on the demo machine.",
+        help_text="Useful when OCR/PDF extraction is unavailable on the demo machine.",
     )
 
     class Meta:
         model = Expense
         fields = ["receipt_image", "manual_ocr_text"]
         widgets = {
-            "receipt_image": forms.FileInput(attrs={"accept": "image/*"}),
+            "receipt_image": forms.FileInput(attrs={"accept": "image/*,.pdf,application/pdf"}),
         }
 
     def __init__(self, *args, **kwargs):

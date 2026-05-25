@@ -8,6 +8,7 @@ A Django monolith for the hackathon problem statement: upload receipt images, ru
 - Django views/models for backend
 - SQLite database
 - Python Tesseract OCR through `pytesseract`
+- PDF text extraction through `pypdf`
 - Chart.js for interactive charts
 - Bootstrap for clean responsive UI
 
@@ -31,7 +32,7 @@ Install the Tesseract engine:
 brew install tesseract
 ```
 
-If Tesseract is not installed, the app still supports demo flow through the fallback OCR text field on the upload page.
+If Tesseract or PDF extraction is not available, the app still supports demo flow through the fallback OCR text field on the upload page.
 
 ## Demo Receipt Text
 

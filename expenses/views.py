@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 from .categorizer import categorize_expense, category_palette
 from .forms import ExpenseEditForm, ReceiptUploadForm
 from .models import Expense
-from .ocr import extract_text_from_image, parse_receipt_text
+from .ocr import extract_text_from_receipt, parse_receipt_text
 
 
 def dashboard(request):
@@ -58,7 +58,7 @@ def upload_receipt(request):
             expense = form.save(commit=False)
             expense.save()
 
-            ocr_text, confidence_note = extract_text_from_image(expense.receipt_image.path)
+            ocr_text, confidence_note = extract_text_from_receipt(expense.receipt_image.path)
             manual_text = form.cleaned_data.get("manual_ocr_text", "").strip()
             final_text = ocr_text.strip() or manual_text
 

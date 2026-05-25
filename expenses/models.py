@@ -31,3 +31,7 @@ class Expense(models.Model):
     def __str__(self):
         label = self.merchant or "Unknown merchant"
         return f"{label} - {self.category} - Rs {self.amount}"
+
+    @property
+    def is_pdf(self):
+        return self.receipt_image.name.lower().endswith(".pdf")

@@ -6,14 +6,14 @@
 <section class="narrow-page">
   <div class="mb-4">
     <p class="eyebrow mb-2">Receipt upload</p>
-    <h1 class="h2 mb-2">Upload a receipt image</h1>
-    <p class="text-secondary mb-0">The backend will run OCR, extract amount/date/merchant, categorize it, and send you to a review screen.</p>
+    <h1 class="h2 mb-2">Upload a receipt file</h1>
+    <p class="text-secondary mb-0">The backend will read image or PDF receipts, extract amount/date/merchant, categorize it, and send you to a review screen.</p>
   </div>
 
   <form class="panel upload-form" method="post" enctype="multipart/form-data">
     {% csrf_token %}
     <div class="mb-3">
-      <label class="form-label" for="{{ form.receipt_image.id_for_label }}">Receipt image</label>
+      <label class="form-label" for="{{ form.receipt_image.id_for_label }}">Receipt file</label>
       {{ form.receipt_image }}
       {% for error in form.receipt_image.errors %}
         <div class="text-danger small mt-1">{{ error }}</div>

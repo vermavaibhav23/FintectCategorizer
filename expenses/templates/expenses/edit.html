@@ -13,8 +13,14 @@
   <div class="row g-4">
     <div class="col-lg-5">
       <div class="panel">
-        <h2 class="h5 mb-3">Receipt image</h2>
-        <img class="receipt-preview" src="{{ expense.receipt_image.url }}" alt="Uploaded receipt">
+        <h2 class="h5 mb-3">Receipt file</h2>
+        {% if expense.is_pdf %}
+          <object class="receipt-preview receipt-pdf" data="{{ expense.receipt_image.url }}" type="application/pdf">
+            <a href="{{ expense.receipt_image.url }}">Open uploaded PDF</a>
+          </object>
+        {% else %}
+          <img class="receipt-preview" src="{{ expense.receipt_image.url }}" alt="Uploaded receipt">
+        {% endif %}
         {% if expense.confidence_note %}
           <p class="small text-secondary mt-3 mb-0">{{ expense.confidence_note }}</p>
         {% endif %}
