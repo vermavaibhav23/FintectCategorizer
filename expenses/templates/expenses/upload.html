@@ -1,0 +1,36 @@
+{% extends "expenses/base.html" %}
+
+{% block title %}Upload Receipt | SpendLens{% endblock %}
+
+{% block content %}
+<section class="narrow-page">
+  <div class="mb-4">
+    <p class="eyebrow mb-2">Receipt upload</p>
+    <h1 class="h2 mb-2">Upload a receipt file</h1>
+    <p class="text-secondary mb-0">The backend will read image or PDF receipts, extract amount/date/merchant, categorize it, and send you to a review screen.</p>
+  </div>
+
+  <form class="panel upload-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label class="form-label" for="{{ form.receipt_image.id_for_label }}">Receipt file</label>
+      {{ form.receipt_image }}
+      {% for error in form.receipt_image.errors %}
+        <div class="text-danger small mt-1">{{ error }}</div>
+      {% endfor %}
+    </div>
+    <div class="mb-4">
+      <label class="form-label" for="{{ form.manual_ocr_text.id_for_label }}">Fallback OCR text</label>
+      {{ form.manual_ocr_text }}
+      <div class="form-text">{{ form.manual_ocr_text.help_text }}</div>
+      {% for error in form.manual_ocr_text.errors %}
+        <div class="text-danger small mt-1">{{ error }}</div>
+      {% endfor %}
+    </div>
+    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+      <a class="btn btn-outline-secondary" href="{% url 'dashboard' %}">Back</a>
+      <button class="btn btn-primary px-4" type="submit">Process receipt</button>
+    </div>
+  </form>
+</section>
+{% endblock %}
