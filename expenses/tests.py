@@ -56,6 +56,34 @@ class ReceiptParsingTests(SimpleTestCase):
         self.assertEqual(parsed["amount"], Decimal("311.93"))
         self.assertEqual(str(parsed["transaction_date"]), "2025-03-10")
 
+    def test_merchant_rules_take_priority_over_broad_keywords(self):
+        self.assertEqual(
+            categorize_expense("BookMyShow ticket at mall", "BookMyShow", "450.00"),
+            "Entertainment",
+        )
+        self.assertEqual(
+            categorize_expense("Apollo Pharmacy retail bill", "Apollo Pharmacy", "320.00"),
+            "Medical",
+        )
+
+    def test_known_indian_merchant_mappings(self):
+        examples = [
+            ("Swiggy", "Food"),
+            ("IndiGo", "Travel"),
+            ("Myntra", "Shopping"),
+            ("Airtel Postpaid", "Bills"),
+            ("PharmEasy", "Medical"),
+            ("D Mart", "Groceries"),
+            ("PVR Cinemas", "Entertainment"),
+        ]
+
+        for merchant, expected_category in examples:
+            with self.subTest(merchant=merchant):
+                self.assertEqual(
+                    categorize_expense(f"{merchant} receipt", merchant, "500.00"),
+                    expected_category,
+                )
+
 
 class ReceiptUploadFlowTests(TestCase):
     def test_upload_review_does_not_save_until_user_confirms(self):
