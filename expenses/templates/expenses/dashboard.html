@@ -101,7 +101,7 @@
       <h2 class="h5 mb-1">Processed receipts</h2>
       <p class="text-secondary mb-0">Filter by category and manually correct OCR results.</p>
     </div>
-    <form class="d-flex gap-2" method="get">
+    <form id="categoryFilterForm" class="d-flex gap-2" method="get">
       <select class="form-select" name="category" aria-label="Filter by category">
         <option value="">All categories</option>
         {% for value, label in category_choices %}
@@ -109,6 +109,9 @@
         {% endfor %}
       </select>
       <button class="btn btn-outline-primary" type="submit">Filter</button>
+      {% if selected_category %}
+        <a class="btn btn-outline-secondary" href="{% url 'dashboard' %}">Clear</a>
+      {% endif %}
     </form>
   </div>
 
@@ -152,6 +155,13 @@
 
 {% block scripts %}
 <script>
+  const filterForm = document.getElementById("categoryFilterForm");
+  const categorySelect = filterForm?.querySelector("select[name='category']");
+
+  if (categorySelect && filterForm) {
+    categorySelect.addEventListener("change", () => filterForm.submit());
+  }
+
   const labels = {{ chart_labels|safe }};
   const values = {{ chart_values|safe }};
   const colors = {{ chart_colors|safe }};

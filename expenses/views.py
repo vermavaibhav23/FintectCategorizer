@@ -17,10 +17,13 @@ from .ocr import extract_text_from_receipt, parse_receipt_text
 
 def dashboard(request):
     expenses = Expense.objects.all()
-    selected_category = request.GET.get("category", "")
+    valid_categories = {value for value, _ in Expense.CATEGORY_CHOICES}
+    selected_category = request.GET.get("category", "").strip()
 
-    if selected_category:
+    if selected_category in valid_categories:
         expenses = expenses.filter(category=selected_category)
+    else:
+        selected_category = ""
 
     category_totals = (
         Expense.objects.values("category")

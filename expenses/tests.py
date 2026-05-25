@@ -125,3 +125,23 @@ class ReceiptUploadFlowTests(TestCase):
 
         self.assertRedirects(response, reverse("dashboard"))
         self.assertEqual(Expense.objects.count(), 1)
+
+    def test_dashboard_filters_processed_receipts_by_category(self):
+        Expense.objects.create(
+            merchant="Uber",
+            amount="311.93",
+            category="Travel",
+            ocr_text="Uber receipt",
+        )
+        Expense.objects.create(
+            merchant="Apollo Pharmacy",
+            amount="255.00",
+            category="Medical",
+            ocr_text="Apollo receipt",
+        )
+
+        response = self.client.get(reverse("dashboard"), {"category": "Medical"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["expenses"].values_list("merchant", flat=True)), ["Apollo Pharmacy"])
+        self.assertEqual(response.context["selected_category"], "Medical")
