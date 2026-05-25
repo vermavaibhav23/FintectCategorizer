@@ -32,6 +32,20 @@ Install the Tesseract engine:
 brew install tesseract
 ```
 
+On Ubuntu/Linux:
+
+```bash
+sudo apt install tesseract-ocr
+```
+
+On Windows, install Tesseract OCR and add the installation folder to `PATH`.
+
+Then verify OCR setup:
+
+```bash
+python manage.py check_ocr
+```
+
 If Tesseract or PDF extraction is not available, the app still supports demo flow through the fallback OCR text field on the upload page.
 
 ## Demo Receipt Text

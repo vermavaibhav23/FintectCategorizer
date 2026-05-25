@@ -1,4 +1,6 @@
 import re
+import shutil
+import subprocess
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -47,12 +49,38 @@ def extract_text_from_image(image_path):
         from PIL import Image
         import pytesseract
     except ImportError:
-        return "", "Install pillow and pytesseract for automatic OCR."
+        return extract_text_with_tesseract_cli(image_path)
 
     try:
         return pytesseract.image_to_string(Image.open(image_path)), "OCR extracted with Tesseract."
     except Exception as exc:
+        cli_text, cli_note = extract_text_with_tesseract_cli(image_path)
+        if cli_text:
+            return cli_text, cli_note
         return "", f"OCR unavailable: {exc}"
+
+
+def extract_text_with_tesseract_cli(image_path):
+    if not shutil.which("tesseract"):
+        return "", "Install Tesseract OCR engine and ensure it is available on PATH."
+
+    try:
+        result = subprocess.run(
+            ["tesseract", str(image_path), "stdout", "-l", "eng"],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=30,
+        )
+    except Exception as exc:
+        return "", f"Tesseract command failed: {exc}"
+
+    text = result.stdout.strip()
+    if text:
+        return text, "OCR extracted with Tesseract CLI."
+
+    error = result.stderr.strip() or "No text found in image."
+    return "", f"Tesseract OCR returned no text: {error}"
 
 
 def parse_receipt_text(text):
