@@ -1,8 +1,11 @@
 from decimal import Decimal
 
-from django.test import SimpleTestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import SimpleTestCase, TestCase
+from django.urls import reverse
 
 from .categorizer import categorize_expense
+from .models import Expense
 from .ocr import parse_receipt_text
 
 
@@ -52,3 +55,37 @@ class ReceiptParsingTests(SimpleTestCase):
         self.assertEqual(parsed["merchant"], "Uber")
         self.assertEqual(parsed["amount"], Decimal("311.93"))
         self.assertEqual(str(parsed["transaction_date"]), "2025-03-10")
+
+
+class ReceiptUploadFlowTests(TestCase):
+    def test_upload_review_does_not_save_until_user_confirms(self):
+        receipt = SimpleUploadedFile(
+            "uber.png",
+            b"not-a-real-image",
+            content_type="image/png",
+        )
+
+        response = self.client.post(
+            reverse("upload_receipt"),
+            {
+                "receipt_image": receipt,
+                "manual_ocr_text": "Uber\nTotal %311.93\nMarch 10, 2025",
+            },
+        )
+
+        self.assertRedirects(response, reverse("review_pending_expense"))
+        self.assertEqual(Expense.objects.count(), 0)
+
+        response = self.client.post(
+            reverse("review_pending_expense"),
+            {
+                "merchant": "Uber",
+                "amount": "311.93",
+                "transaction_date": "2025-03-10",
+                "category": "Travel",
+                "ocr_text": "Uber\nTotal %311.93\nMarch 10, 2025",
+            },
+        )
+
+        self.assertRedirects(response, reverse("dashboard"))
+        self.assertEqual(Expense.objects.count(), 1)

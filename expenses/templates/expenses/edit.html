@@ -14,15 +14,15 @@
     <div class="col-lg-5">
       <div class="panel">
         <h2 class="h5 mb-3">Receipt file</h2>
-        {% if expense.is_pdf %}
-          <object class="receipt-preview receipt-pdf" data="{{ expense.receipt_image.url }}" type="application/pdf">
-            <a href="{{ expense.receipt_image.url }}">Open uploaded PDF</a>
+        {% if is_pdf %}
+          <object class="receipt-preview receipt-pdf" data="{{ receipt_url }}" type="application/pdf">
+            <a href="{{ receipt_url }}">Open uploaded PDF</a>
           </object>
         {% else %}
-          <img class="receipt-preview" src="{{ expense.receipt_image.url }}" alt="Uploaded receipt">
+          <img class="receipt-preview" src="{{ receipt_url }}" alt="Uploaded receipt">
         {% endif %}
-        {% if expense.confidence_note %}
-          <p class="small text-secondary mt-3 mb-0">{{ expense.confidence_note }}</p>
+        {% if confidence_note %}
+          <p class="small text-secondary mt-3 mb-0">{{ confidence_note }}</p>
         {% endif %}
       </div>
     </div>
@@ -42,10 +42,17 @@
           <button class="btn btn-primary px-4" type="submit">Save and view dashboard</button>
         </div>
       </form>
+      {% if is_pending %}
+      <form class="mt-3" method="post" action="{% url 'discard_pending_expense' %}">
+        {% csrf_token %}
+        <button class="btn btn-outline-danger" type="submit">Discard without saving</button>
+      </form>
+      {% else %}
       <form class="mt-3" method="post" action="{% url 'delete_expense' expense.id %}">
         {% csrf_token %}
         <button class="btn btn-outline-danger" type="submit">Delete expense</button>
       </form>
+      {% endif %}
     </div>
   </div>
 </section>

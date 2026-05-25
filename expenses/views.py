@@ -1,7 +1,9 @@
 import json
 from decimal import Decimal
+from pathlib import Path
 
 from django.contrib import messages
+from django.core.files.storage import default_storage
 from django.db.models import Count, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -55,21 +57,28 @@ def upload_receipt(request):
     if request.method == "POST":
         form = ReceiptUploadForm(request.POST, request.FILES)
         if form.is_valid():
-            expense = form.save(commit=False)
-            expense.save()
+            uploaded_file = form.cleaned_data["receipt_image"]
+            pending_path = default_storage.save(f"pending_receipts/{uploaded_file.name}", uploaded_file)
+            absolute_path = default_storage.path(pending_path)
 
-            ocr_text, confidence_note = extract_text_from_receipt(expense.receipt_image.path)
+            ocr_text, confidence_note = extract_text_from_receipt(absolute_path)
             manual_text = form.cleaned_data.get("manual_ocr_text", "").strip()
             final_text = ocr_text.strip() or manual_text
 
             parsed = parse_receipt_text(final_text)
-            expense.ocr_text = final_text
-            expense.confidence_note = confidence_note
-            expense.merchant = parsed["merchant"]
-            expense.amount = parsed["amount"]
-            expense.transaction_date = parsed["transaction_date"]
-            expense.category = categorize_expense(final_text, expense.merchant, expense.amount)
-            expense.save()
+            category = categorize_expense(final_text, parsed["merchant"], parsed["amount"])
+
+            request.session["pending_expense"] = {
+                "receipt_path": pending_path,
+                "ocr_text": final_text,
+                "confidence_note": confidence_note,
+                "merchant": parsed["merchant"],
+                "amount": str(parsed["amount"]),
+                "transaction_date": parsed["transaction_date"].isoformat()
+                if parsed["transaction_date"]
+                else "",
+                "category": category,
+            }
 
             if not ocr_text and manual_text:
                 messages.warning(
@@ -77,13 +86,58 @@ def upload_receipt(request):
                     "Automatic OCR was unavailable, so the app used your fallback text.",
                 )
             else:
-                messages.success(request, "Receipt uploaded and categorized successfully.")
+                messages.success(request, "Receipt processed. Review it before saving.")
 
-            return redirect(f"{reverse('edit_expense', args=[expense.id])}?fresh=1")
+            return redirect("review_pending_expense")
     else:
         form = ReceiptUploadForm()
 
     return render(request, "expenses/upload.html", {"form": form})
+
+
+def review_pending_expense(request):
+    pending = request.session.get("pending_expense")
+    if not pending:
+        messages.info(request, "Upload a receipt before reviewing it.")
+        return redirect("upload_receipt")
+
+    initial = {
+        "merchant": pending.get("merchant", ""),
+        "amount": pending.get("amount", "0.00"),
+        "transaction_date": pending.get("transaction_date") or None,
+        "category": pending.get("category", "Other"),
+        "ocr_text": pending.get("ocr_text", ""),
+    }
+
+    if request.method == "POST":
+        form = ExpenseEditForm(request.POST)
+        if form.is_valid():
+            expense = form.save(commit=False)
+            expense.receipt_image.name = pending["receipt_path"]
+            expense.confidence_note = pending.get("confidence_note", "")
+            expense.category = categorize_expense(expense.ocr_text, expense.merchant, expense.amount)
+            if "category" in form.changed_data:
+                expense.category = form.cleaned_data["category"]
+            expense.save()
+            request.session.pop("pending_expense", None)
+            messages.success(request, "Expense saved.")
+            return redirect("dashboard")
+    else:
+        form = ExpenseEditForm(initial=initial)
+
+    receipt_path = pending["receipt_path"]
+    return render(
+        request,
+        "expenses/edit.html",
+        {
+            "form": form,
+            "is_fresh": True,
+            "is_pending": True,
+            "receipt_url": default_storage.url(receipt_path),
+            "is_pdf": Path(receipt_path).suffix.lower() == ".pdf",
+            "confidence_note": pending.get("confidence_note", ""),
+        },
+    )
 
 
 def edit_expense(request, expense_id):
@@ -108,8 +162,20 @@ def edit_expense(request, expense_id):
             "expense": expense,
             "form": form,
             "is_fresh": request.GET.get("fresh") == "1",
+            "receipt_url": expense.receipt_image.url,
+            "is_pdf": expense.is_pdf,
+            "confidence_note": expense.confidence_note,
         },
     )
+
+
+@require_POST
+def discard_pending_expense(request):
+    pending = request.session.pop("pending_expense", None)
+    if pending and pending.get("receipt_path"):
+        default_storage.delete(pending["receipt_path"])
+    messages.info(request, "Pending receipt discarded.")
+    return redirect("dashboard")
 
 
 @require_POST
